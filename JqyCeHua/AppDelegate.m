@@ -8,7 +8,15 @@
 
 #import "AppDelegate.h"
 
-@interface AppDelegate ()
+#import "JqyCeHuaController.h"
+
+#import "ViewController.h"
+
+#import "HomeController.h"
+
+#import "CeYeView.h"
+
+@interface AppDelegate ()<JqyCeHuaCongtrollerDelegate>
 
 @end
 
@@ -17,7 +25,107 @@
 
 - (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions {
     // Override point for customization after application launch.
+    
+    
+#warning 如果侧滑视图是主界面建议使用单利初始化
+/* 也可一般初始化
+ * JqyCeHuaController *Jqy_ceHuaVc = [JqyCeHuaController new];
+ */
+    Jqy_ceHuaVc.delegate = self;
+    
+    Jqy_ceHuaVc.isDianJiHuiShou = YES;
+    
+    //从侧滑页跳转时即将消失回调
+    Jqy_ceHuaVc.WillDisappearBlock = ^{
+      
+        [Jqy_ceHuaVc ziDongHuiShouAnimated:YES]; //自动回收
+        
+    };
+    
+    HomeController *zhuVc = [[HomeController alloc]init];
+    zhuVc.openBlock = ^{
+      
+      [Jqy_ceHuaVc ziDongKaiQiAnimated:YES]; //自动开启
+        
+    };
+    
+#warning 注意从主页跳转消失后要关闭可滑动  显示后打开  (从滑动页跳转可不用设置)
+    zhuVc.apperBlock = ^{
+        
+        Jqy_ceHuaVc.superScrollView.scrollEnabled = YES;
+    };
+    
+    zhuVc.disappearBlock = ^{
+      
+        Jqy_ceHuaVc.superScrollView.scrollEnabled = NO;
+        
+    };
+    
+    
+    CeYeView *ceView = [[CeYeView alloc]init];
+    ceView.dianjiBlock = ^{
+        
+        [Jqy_ceHuaVc ziDongHuiShouAnimated:YES];
+       
+    };
+    
+#warning 设置侧滑页的侧边页
+    Jqy_ceHuaVc.ceView = ceView;
+    
+    UINavigationController *zhuNaVc = [[UINavigationController alloc]initWithRootViewController:zhuVc];;
+#warning 设置侧滑页的主页
+    Jqy_ceHuaVc.zhuController = zhuNaVc;
+
+// 覆盖区域 有默认
+//    Jqy_ceHuaVc.fuGaiWidth = 327.4432;
+    
+    
+    self.window = [[UIWindow alloc]initWithFrame:[UIScreen mainScreen].bounds];
+    self.window.backgroundColor = [UIColor whiteColor];
+    
+    UINavigationController *ceHuaNaVc = [[UINavigationController alloc]initWithRootViewController:Jqy_ceHuaVc];
+    self.window.rootViewController = ceHuaNaVc;
+#warning 如果侧滑页有导航栏设置此属性为YES 没有就不要设置或设置成NO 
+    Jqy_ceHuaVc.isHasNavigationBar = YES;
+    
+    [self.window makeKeyAndVisible];
+    
+    
     return YES;
+}
+
+#pragma mark >>>>>>>>>>>>>>.. 代理
+
+/*
+ * 将要展开
+ */
+- (void)willOpen{
+    
+    NSLog(@"将要展开");
+}
+
+///*
+// * 已经展开
+// */
+//- (void)didOpen{
+//    
+//    NSLog(@"已经展开");
+//}
+//
+///*
+// * 将要关闭
+// */
+//- (void)willClose{
+//    
+//    NSLog(@"将要关闭");
+//}
+
+/*
+ * 已经关闭
+ */
+- (void)didClose {
+    
+     NSLog(@"已经关闭");
 }
 
 
