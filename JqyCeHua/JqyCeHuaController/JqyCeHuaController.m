@@ -78,7 +78,8 @@
 @property (nonatomic,assign)CGFloat zhuangTaiY; //状态高
 @property (nonatomic,assign)BOOL isDanLi; //是否单利初始化
 @property (nonatomic,assign)BOOL isBeginDragging; //判断是否拖拽 防止未拖拽情况下执行代理
-
+@property (nonatomic,assign)NSInteger draggContentX; //记录拖拽时的x
+@property (nonatomic,assign)BOOL isDidScroll; //是否滑动过
 @end
 
 @implementation JqyCeHuaController
@@ -116,14 +117,18 @@
  */
 - (void)setViews {
     
-
-    
     self.view.backgroundColor = [UIColor whiteColor];
     
     //设置默认数值
-    if (self.fuGaiWidth <= 0) {
+    if (self.ceLanWidth <= 0) {
+    
+        self.ceLanWidth = K_Width*0.75;
+    }
+    
+    //如果是分离式则不能小于屏幕宽
+    if ((self.ceLanWidth < K_Width/2) && self.ceHuaStyle == UIFenLiCeHuaStyle) {
         
-        self.fuGaiWidth = K_Width*0.75;
+        self.ceLanWidth = K_Width/2 + 20;
     }
     
     //隐藏导航栏
@@ -134,10 +139,11 @@
   
     //可滑动的父视图
     self.superScrollView = [[SuperScrollView alloc]initWithFrame:[UIScreen mainScreen].bounds];
-    self.superScrollView.contentSize = CGSizeMake(K_Width + self.fuGaiWidth, K_Height - _zhuangTaiY);
-    self.superScrollView.contentOffset = CGPointMake(self.fuGaiWidth, 0);
+    self.superScrollView.contentSize = CGSizeMake(K_Width + self.ceLanWidth, K_Height - _zhuangTaiY);
+    self.superScrollView.contentOffset = CGPointMake(self.ceLanWidth, 0);
     self.superScrollView.showsHorizontalScrollIndicator = NO;
-    self.superScrollView.keHuaDongX = self.fuGaiWidth + 25;
+    self.superScrollView.keHuaDongX = self.ceLanWidth + 25;
+    self.superScrollView.backgroundColor = [UIColor redColor];
     if (self.isDanLi) {
         
         self.superScrollView.isJiluHuaDongQu = YES;
@@ -147,7 +153,7 @@
     //侧边栏
     if (self.ceView) {
         
-      self.ceView.frame = CGRectMake(- (K_Width - self.fuGaiWidth), - _zhuangTaiY, K_Width, K_Height);
+      self.ceView.frame = CGRectMake(self.ceHuaStyle ? -(K_Width - self.ceLanWidth) : (K_Width - self.ceLanWidth), - _zhuangTaiY, K_Width, K_Height);
       [self.superScrollView addSubview:self.ceView];
     }
    
@@ -155,7 +161,7 @@
     //主视图
     if (self.zhuController) {
         
-        self.zhuController.view.frame = CGRectMake(self.fuGaiWidth, - _zhuangTaiY, K_Width, K_Height);
+        self.zhuController.view.frame = CGRectMake(self.ceLanWidth,  - _zhuangTaiY, K_Width, K_Height);
         [self.superScrollView addSubview:self.zhuController.view];
        
     }
@@ -191,53 +197,66 @@
  * 实现滑动ing代理方法
  */
 - (void)scrollViewDidScroll:(UIScrollView *)scrollView {
-    
-    self.ceView.frame = CGRectMake( - (scrollView.contentOffset.x / (self.fuGaiWidth/(K_Width-self.fuGaiWidth))), - _zhuangTaiY, K_Width, K_Height);
-    
 
-    self.coverView.alpha = 1 - (scrollView.contentOffset.x / (self.fuGaiWidth/1));
+    CGFloat ceViewX = scrollView.contentOffset.x / (self.ceLanWidth/(K_Width-self.ceLanWidth));
+    
+    self.ceView.frame = CGRectMake(self.ceHuaStyle ? - ceViewX : ceViewX, scrollView.contentOffset.y, K_Width, K_Height);
+    
+    self.zhuController.view.frame = CGRectMake(self.zhuController.view.frame.origin.x, scrollView.contentOffset.y, self.zhuController.view.frame.size.width, self.zhuController.view.frame.size.height);
+
+    self.coverView.alpha = 1 - (scrollView.contentOffset.x / (self.ceLanWidth/1));
+    
+  
+    if (self.isBeginDragging) {
+        
+        self.isDidScroll = YES;
+        
+        //将要开启
+        if (self.delegate && [self.delegate respondsToSelector:@selector(willOpen)]) {
+            
+            if (self.draggContentX == self.ceLanWidth) {
+                
+                [self.delegate willOpen];
+            }
+            
+        }
+        
+        //将要关闭
+        if (self.delegate && [self.delegate respondsToSelector:@selector(willClose)]) {
+            
+            if (self.draggContentX == 0) {
+                
+                [self.delegate willClose];
+            }
+        }
+        
+        self.isBeginDragging = NO;
+    }
     
 }
 
 /*
  * 开始拖拽
  */
+
 - (void)scrollViewWillBeginDragging:(UIScrollView *)scrollView {
     
+    self.draggContentX = [[NSString stringWithFormat:@"%.f",scrollView.contentOffset.x] integerValue];
     self.isBeginDragging = YES;
-
-    NSInteger contentX = [[NSString stringWithFormat:@"%.f",scrollView.contentOffset.x] integerValue];
-   
-      //将要开启
-    if (self.delegate && [self.delegate respondsToSelector:@selector(willOpen)]) {
-            
-        if (contentX == self.fuGaiWidth) {
-            
-             [self.delegate willOpen];
-        }
-    
-    }
-    
-    //将要关闭
-    if (self.delegate && [self.delegate respondsToSelector:@selector(willClose)]) {
-            
-        if (contentX == 0) {
-            
-            [self.delegate willClose];
-        }
-    }
-    
 }
+
+
 
 /*
  * 结束拖拽
  */
 - (void)scrollViewDidEndDecelerating:(UIScrollView *)scrollView {
     
-    NSInteger contentX = [[NSString stringWithFormat:@"%.f",scrollView.contentOffset.x] integerValue];
     
-    if (self.isBeginDragging) {
+    if (self.isDidScroll) {
     
+         NSInteger contentX = [[NSString stringWithFormat:@"%.f",scrollView.contentOffset.x] integerValue];
+        
             //已经开启
         if (self.delegate && [self.delegate respondsToSelector:@selector(didOpen)]) {
                 
@@ -251,16 +270,16 @@
         //已经关闭
         if (self.delegate && [self.delegate respondsToSelector:@selector(didClose)]) {
             
-           if (contentX == self.fuGaiWidth) {
+           if (contentX == self.ceLanWidth) {
             
                 [self.delegate didClose];
         
              }
         }
 
-}
+   }
     
-    self.isBeginDragging = NO;
+    self.isDidScroll = NO;
 }
 
 
@@ -270,12 +289,8 @@
 - (void)ziDongKaiQiAnimated:(BOOL)animated{
     
     //执行开启代理方法
-    if (self.delegate && [self.delegate respondsToSelector:@selector(didOpen)]) {
-        
-        self.isBeginDragging = YES;
-        
-    }
-    
+    self.isBeginDragging = NO;
+
     if (self.delegate && [self.delegate respondsToSelector:@selector(willOpen)]) {
         
         [self.delegate willOpen];
@@ -288,6 +303,14 @@
             self.ceView.frame = CGRectMake(0, - _zhuangTaiY, K_Width, K_Height);
             
             self.superScrollView.contentOffset = CGPointMake(0, - _zhuangTaiY);
+            
+        } completion:^(BOOL finished) {
+            
+        if (self.delegate && [self.delegate respondsToSelector:@selector(didOpen)]) {
+            
+            [self.delegate didOpen];
+            
+        }
             
         }];
         
@@ -307,12 +330,8 @@
 - (void)ziDongHuiShouAnimated:(BOOL)animated{
     
     //执行关闭代理方法
-    if (self.delegate && [self.delegate respondsToSelector:@selector(didClose)]) {
-        
-        self.isBeginDragging = YES;
-        
-    }
-    
+    self.isBeginDragging = NO;
+  
     if (self.delegate && [self.delegate respondsToSelector:@selector(willClose)]) {
         
         [self.delegate willClose];
@@ -322,16 +341,27 @@
      
         [UIView animateWithDuration:0.3 animations:^{
             
-            self.ceView.frame = CGRectMake(0, - _zhuangTaiY, K_Width + self.fuGaiWidth, K_Height);
+            self.ceView.frame = CGRectMake(0, - _zhuangTaiY, K_Width + self.ceLanWidth, K_Height);
             
-            self.superScrollView.contentOffset = CGPointMake(self.fuGaiWidth, - _zhuangTaiY);
+            self.superScrollView.contentOffset = CGPointMake(self.ceLanWidth, - _zhuangTaiY);
+            
+        } completion:^(BOOL finished) {
+        
+        if (self.delegate && [self.delegate respondsToSelector:@selector(didClose)]) {
+            
+            [self.delegate didClose];
+            
+        }
+            
         }];
         
     }else {
         
-        self.ceView.frame = CGRectMake(0, - _zhuangTaiY, K_Width + self.fuGaiWidth, K_Height);
+        self.ceView.frame = CGRectMake(0, - _zhuangTaiY, K_Width + self.ceLanWidth, K_Height);
         
-        self.superScrollView.contentOffset = CGPointMake(self.fuGaiWidth, - _zhuangTaiY);
+        self.superScrollView.contentOffset = CGPointMake(self.ceLanWidth, - _zhuangTaiY);
+        
+        [self.delegate didClose];
     }
    
 }

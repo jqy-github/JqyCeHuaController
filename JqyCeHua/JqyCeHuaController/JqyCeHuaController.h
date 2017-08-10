@@ -52,9 +52,22 @@
 
 @end
 
+typedef NS_ENUM(NSInteger, UICeHuaStyle) {
+   
+    UIFenLiCeHuaStyle = 0,
+    UIHeBingCeHuaStyle
+    
+};
+
 @interface JqyCeHuaController : UIViewController
 
 #pragma >>>>>>>>>>>>>>属性
+
+/*
+ * 侧滑样式
+ */
+@property (nonatomic,assign)UICeHuaStyle ceHuaStyle;
+
 
 /*
  * 代理
@@ -77,9 +90,9 @@
 @property (nonatomic,strong)UIViewController *zhuController;
 
 /*
- * 需要覆盖宽度
+ * 设置侧栏宽度
  */
-@property (nonatomic,assign)NSInteger fuGaiWidth;
+@property (nonatomic,assign)NSInteger ceLanWidth;
 
 /*
  * 是否有导航栏

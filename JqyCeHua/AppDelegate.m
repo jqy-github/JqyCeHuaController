@@ -76,8 +76,10 @@
 #warning 设置侧滑页的主页
     Jqy_ceHuaVc.zhuController = zhuNaVc;
 
+    //设置侧滑样式有默认
+//    Jqy_ceHuaVc.ceHuaStyle = UIHeBingCeHuaStyle;
 // 覆盖区域 有默认
-//    Jqy_ceHuaVc.fuGaiWidth = 327.4432;
+//    Jqy_ceHuaVc.ceLanWidth = 300;
     
     
     self.window = [[UIWindow alloc]initWithFrame:[UIScreen mainScreen].bounds];
@@ -119,7 +121,7 @@
 //    
 //    NSLog(@"将要关闭");
 //}
-
+//
 /*
  * 已经关闭
  */
